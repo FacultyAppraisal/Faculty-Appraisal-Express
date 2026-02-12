@@ -11,6 +11,7 @@ import {
 import { ROLE } from '../constant/userInfo';
 
 export interface User extends Document {
+  userId: string;
   name: string;
   email: string;
   department: DepartmentValue;
@@ -18,6 +19,7 @@ export interface User extends Document {
   designation: UserDesignation;
   status: StakeholderStatus;
   password: string;
+  deleted?: boolean;
   role: UserRole;
   lastLogin?: Date;
   createdAt: Date;
@@ -26,6 +28,13 @@ export interface User extends Document {
 
 const userSchema = new Schema<User>(
   {
+    userId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+
     name: {
       type: String,
       required: true,
@@ -80,6 +89,10 @@ const userSchema = new Schema<User>(
 
     lastLogin: {
       type: Date,
+    },
+    deleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

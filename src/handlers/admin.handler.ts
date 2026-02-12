@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { DepartmentValue, StakeholderStatus, UserDesignation, UserRole } from '../constant';
-import mongoose from 'mongoose';
 import { User } from '../models/user';
 
 interface CreateUserRequest {
-    _id: mongoose.Types.ObjectId;
+    userId: string;
     name: string;
     email: string;
     department: DepartmentValue;
@@ -17,7 +16,7 @@ interface CreateUserRequest {
 
 
 interface UserResponse {
-    _id: string;
+  userId: string;
     username: string;
     role: string;
 }
@@ -37,17 +36,17 @@ export const AddUser = async (
   res: Response<SuccessResponse | ErrorResponse>
 ) => {
   try {
-    const { _id, name, email, department, mobile, designation, status, password, role } = req.body;
+    const { userId, name, email, department, mobile, designation, status, password, role } = req.body;
 
-    if (!_id || !name || !email || !department || !mobile || !designation || !status || !password || !role) {
+    if (!userId || !name || !email || !department || !mobile || !designation || !status || !password || !role) {
       return res.status(400).json({
-        message: "All fields including _id are required"
+        message: "All fields including userId are required"
       });
     }
-    const existingId = await User.findById(_id);
-    if (existingId) {
+    const existingUserId = await User.findOne({ userId });
+    if (existingUserId) {
       return res.status(409).json({
-        message: "User with this ID already exists"
+        message: "User with this userId already exists"
       });
     }
 
@@ -59,7 +58,7 @@ export const AddUser = async (
     }
 
     const user = await User.create({
-      _id,
+      userId,
       name,
       email,
       department,
@@ -71,7 +70,7 @@ export const AddUser = async (
     });
 
     const response: UserResponse = {
-      _id: user._id.toString(),
+      userId: user.userId,
       username: user.name,
       role: user.role
     };

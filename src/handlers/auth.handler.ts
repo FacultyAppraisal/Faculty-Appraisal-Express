@@ -39,34 +39,34 @@ const setCookies = (
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { userId, password } = req.body;
 
-    console.log("Login attempt for email:", email.trim().toLowerCase());
+    console.log("Login attempt for userId:", String(userId).trim());
 
     const user = await User.findOne({
-      email: email.trim().toLowerCase(),
+      userId: String(userId).trim(),
       deleted: false,
     });
 
     console.log("User found:", user);
     if (!user) {
-      sendError(res, "Invalid email or password", HttpStatus.UNAUTHORIZED);
+      sendError(res, "Invalid userId or password", HttpStatus.UNAUTHORIZED);
       return;
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
-      sendError(res, "Invalid email or password", HttpStatus.UNAUTHORIZED);
+      sendError(res, "Invalid userId or password", HttpStatus.UNAUTHORIZED);
       return;
     }
 
-    const token = generateToken(user.id, user.email, user.role);
+    const token = generateToken(user.userId, user.email, user.role);
 
     user.lastLogin = new Date();
     await user.save();
 
     const userInfo = {
-      id: user.id,
+      id: user.userId,
       email: user.email,
       name: user.name,
       role: user.role,
@@ -95,8 +95,8 @@ export const validateUser = async (
     }
 
     const user = await User.findOne(
-      { _id: req.user.userId, deleted: false },
-      { id: 1, email: 1, name: 1, role: 1 }
+      { userId: req.user.userId, deleted: false },
+      { userId: 1, email: 1, name: 1, role: 1 }
     );
 
     if (!user) {
@@ -175,7 +175,7 @@ export const changePassword = async (
       return;
     }
 
-    const user = await User.findById(req.user.userId);
+    const user = await User.findOne({ userId: req.user.userId, deleted: false });
 
     if (!user) {
       sendError(res, "User not found", HttpStatus.NOT_FOUND);

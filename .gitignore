@@ -32,3 +32,6 @@ prisma/*.db-journal
 uploads/
 
 /src/generated/
+
+*.md
+/src/generated/prisma

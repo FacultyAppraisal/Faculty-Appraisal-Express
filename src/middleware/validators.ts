@@ -26,10 +26,11 @@ export const handleValidationErrors = (
 
 
 export const loginValidator = [
-  body('email')
+  body('userId')
     .isString()
-    .withMessage('Valid ID is required')
-    .normalizeEmail(),
+    .trim()
+    .notEmpty()
+    .withMessage('Valid userId is required'),
   body('password')
     .isLength({ min: 1 })
     .withMessage('Password is required'),

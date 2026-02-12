@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../constant/userInfo';
 import { validateToken, JWTPayload } from '../utils/jwt';
 import { sendError, HttpStatus } from '../utils/response';
 
@@ -9,7 +9,7 @@ declare global {
     interface Request {
       user?: {
         userId: string;
-        role: string;
+        role: UserRole;
       };
     }
   }
@@ -60,7 +60,7 @@ export const authMiddleware = (...allowedRoles: UserRole[]) => {
       // Attach user info to request
       req.user = {
         userId: decoded.userId,
-        role: decoded.role,
+        role: decoded.role as UserRole,
       };
 
       next();
@@ -91,7 +91,7 @@ export const optionalAuth = async (
           const decoded = validateToken(token);
           req.user = {
             userId: decoded.userId,
-            role: decoded.role,
+            role: decoded.role as UserRole,
           };
         } catch {
           // Token invalid, but we don't fail - just proceed without user
