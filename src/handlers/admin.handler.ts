@@ -55,7 +55,7 @@ export const AddUser = async (
     // Validate required fields
     if (!userId || !name || !email || !department || !mobile || !designation || !status || !password || !role) {
       return res.status(400).json({
-        message: `All fields including ${userId} ${name} ${email} ${department} ${mobile} ${designation} ${status} ${password} ${role} are required`
+        message: `All fields including userId are required`
       });
     }
 
