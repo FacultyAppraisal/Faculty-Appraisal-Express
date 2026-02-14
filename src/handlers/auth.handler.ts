@@ -45,7 +45,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const user = await User.findOne({
       userId: String(userId).trim(),
-      deleted: false,
+      status: 'active',
     });
 
     if (!user) {
@@ -94,7 +94,7 @@ export const validateUser = async (
     }
 
     const user = await User.findOne(
-      { userId: req.user.userId, deleted: false },
+      { userId: req.user.userId, status: 'active' },
       { userId: 1, email: 1, name: 1, role: 1 }
     );
 
@@ -174,7 +174,7 @@ export const changePassword = async (
       return;
     }
 
-    const user = await User.findOne({ userId: req.user.userId, deleted: false });
+    const user = await User.findOne({ userId: req.user.userId, status: 'active' });
 
     if (!user) {
       sendError(res, "User not found", HttpStatus.NOT_FOUND);
@@ -227,12 +227,12 @@ export const requestPasswordReset = async (
     }
 
     // Find user by email
-    const user = await User.findOne({ email, deleted: false });
+    const user = await User.findOne({ email, status: 'active' });
 
     if (!user) {
       // Don't reveal if user exists or not for security
       res.status(200).json({
-        message: "If an account with that email exists, a password reset link has been sent."
+        message: "If an account no with that email exists, a password reset link has been sent."
       });
       return;
     }
@@ -298,7 +298,7 @@ export const resetPassword = async (
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: new Date() },
-      deleted: false
+      status: 'active'
     });
 
     if (!user) {

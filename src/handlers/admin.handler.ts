@@ -38,8 +38,7 @@ export const AddUser = async (
   res: Response<SuccessResponse | ErrorResponse>
 ) => {
   try {
-    console.log('Request body:', req.body);
-    
+        
     const { 
       userId, 
       name, 

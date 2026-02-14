@@ -19,7 +19,6 @@ export interface User extends Document {
   designation: UserDesignation;
   status: StakeholderStatus;
   password: string;
-  deleted?: boolean;
   role: UserRole;
   lastLogin?: Date;
   resetPasswordToken?: string;
@@ -97,10 +96,6 @@ const userSchema = new Schema<User>(
     },
     resetPasswordExpires: {
       type: Date,
-    },
-    deleted: {
-      type: Boolean,
-      default: false,
     },
   },
   {
