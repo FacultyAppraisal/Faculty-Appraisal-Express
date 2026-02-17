@@ -111,6 +111,21 @@ export const AddUser = async (
   }
 };
 
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await User.find()
+      .select('userId name email department mobile designation status role createdAt')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error"
+    });
+  }
+};
+
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body;
