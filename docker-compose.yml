@@ -6,5 +6,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
