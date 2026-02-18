@@ -2,7 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import authRoutes from './auth.routes';
 import adminRoutes from './admin.routes';
-import verificationRoutes from './verification.routes';
+import verificationTeamRoutes from './verificationTeam.routes';
 
 const router: Router = Router();
 
@@ -31,7 +31,8 @@ router.get('/health', (_req, res) => {
 // Register all routes
 router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
-router.use('/', verificationRoutes);
+router.use('/verification-team', verificationTeamRoutes);
+
 
 
 export default router;

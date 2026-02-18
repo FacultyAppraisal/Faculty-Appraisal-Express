@@ -1,41 +1,40 @@
 import { Request, Response } from 'express';
 import { User } from '../models/user';
 import { VerificationTeam } from '../models/verificationTeam';
-import mongoose from 'mongoose';
 
-// Map frontend department names to backend values
-const departmentMapping: Record<string, string> = {
-  'Computer Engineering': 'computer',
-  'Information Technology': 'it',
-  'Mechanical Engineering': 'mechanical',
-  'Civil Engineering': 'civil',
-  'Electronics and Telecommunication Engineering': 'entc',
-  'Computer Engineering (Regional)': 'computer_regional',
-  'Artificial Intelligence and Machine Learning': 'aiml',
-  'Applied Sciences and Humanities': 'ash'
-};
-
-interface CreateVerificationCommitteeRequest {
+interface CreateVerificationCommitteeBody {
+  department: string;
   committee_ids: string[];
   deleted_verifiers?: string[];
 }
 
-interface DepartmentParams {
+interface AssignFacultiesBody {
+  department: string;
+  assignments: Record<string, string[]>; // { verifierId: [facultyIds] }
+}
+
+interface GetCommitteeBody {
   department: string;
 }
 
 // Get verification committee for a department
-export const getVerificationCommittee = async (req: Request<DepartmentParams>, res: Response) => {
+export const getVerificationCommitteeByDept = async (
+  req: Request<{}, {}, GetCommitteeBody>,
+  res: Response
+) => {
   try {
-    const { department } = req.params;
+    const { department } = req.body;
     
-    // Map frontend department name to backend value
-    const deptValue = departmentMapping[department] || department.toLowerCase();
+    if (!department) {
+      return res.status(400).json({
+        error: 'Department is required'
+      });
+    }
 
     // Find all verification teams for this department
-    const verificationTeams = await VerificationTeam.find({ department: deptValue })
-      .populate('userId', 'userId name email department')
-      .populate('faculties', 'userId name email department');
+    const verificationTeams = await VerificationTeam.find({ department })
+      .populate('userId', 'userId name email department designation')
+      .populate('faculties', 'userId name email department designation');
 
     if (!verificationTeams || verificationTeams.length === 0) {
       return res.status(200).json({
@@ -44,20 +43,16 @@ export const getVerificationCommittee = async (req: Request<DepartmentParams>, r
       });
     }
 
-    // Build response in the format expected by frontend
+    // Build response
     const committees: Record<string, string[]> = {};
 
     for (const team of verificationTeams) {
       const verifier = team.userId as any;
       if (verifier) {
-        // Create key in format: "userId (name)"
         const key = `${verifier.userId} (${verifier.name})`;
-        
-        // Map faculties to their display format
         const faculties = team.faculties.map((faculty: any) => 
           `${faculty.userId} (${faculty.name})`
         );
-        
         committees[key] = faculties;
       }
     }
@@ -76,22 +71,24 @@ export const getVerificationCommittee = async (req: Request<DepartmentParams>, r
 };
 
 // Create or update verification committee for a department
-export const createVerificationCommittee = async (
-  req: Request<DepartmentParams, {}, CreateVerificationCommitteeRequest>,
+export const createVerificationCommitteeByDept = async (
+  req: Request<{}, {}, CreateVerificationCommitteeBody>,
   res: Response
 ) => {
   try {
-    const { department } = req.params;
-    const { committee_ids, deleted_verifiers = [] } = req.body;
+    const { department, committee_ids, deleted_verifiers = [] } = req.body;
+
+    if (!department) {
+      return res.status(400).json({
+        error: 'Department is required'
+      });
+    }
 
     if (!committee_ids || !Array.isArray(committee_ids)) {
       return res.status(400).json({
         error: 'committee_ids is required and must be an array'
       });
     }
-
-    // Map frontend department name to backend value
-    const deptValue = departmentMapping[department] || department.toLowerCase();
 
     // Validate all committee IDs exist and are from different departments
     const verifiers = await User.find({ 
@@ -105,7 +102,7 @@ export const createVerificationCommittee = async (
     }
 
     // Check if any verifier is from the same department
-    const sameDeptVerifiers = verifiers.filter(v => v.department === deptValue);
+    const sameDeptVerifiers = verifiers.filter(v => v.department === department);
     if (sameDeptVerifiers.length > 0) {
       return res.status(400).json({
         error: `Verifiers cannot be from the same department (${department})`
@@ -114,36 +111,32 @@ export const createVerificationCommittee = async (
 
     // Get all faculty from the department being verified
     const departmentFaculty = await User.find({ 
-      department: deptValue,
+      department: department,
       role: 'faculty'
     });
 
     // Handle deleted verifiers first
     if (deleted_verifiers.length > 0) {
+      const deletedUsers = await User.find({ userId: { $in: deleted_verifiers } });
       await VerificationTeam.deleteMany({
-        department: deptValue,
-        userId: { 
-          $in: await User.find({ userId: { $in: deleted_verifiers } })
-            .then(users => users.map(u => u._id))
-        }
+        department: department,
+        userId: { $in: deletedUsers.map(u => u._id) }
       });
     }
 
-    // Distribute faculty among verifiers
-    const facultyPerVerifier = Math.ceil(departmentFaculty.length / verifiers.length);
-    
-    // Delete existing verification teams for this department (excluding the ones we just deleted)
+    // Get existing verifier IDs for this department
     const existingVerifierIds = await User.find({ 
       userId: { $in: committee_ids }
     }).then(users => users.map(u => u._id));
 
-    // Remove old assignments for this department
+    // Remove old assignments for this department (except current verifiers)
     await VerificationTeam.deleteMany({
-      department: deptValue,
+      department: department,
       userId: { $nin: existingVerifierIds }
     });
 
-    // Create new verification teams
+    // Distribute faculty among verifiers evenly
+    const facultyPerVerifier = Math.ceil(departmentFaculty.length / verifiers.length);
     const verificationTeams = [];
     
     for (let i = 0; i < verifiers.length; i++) {
@@ -155,7 +148,7 @@ export const createVerificationCommittee = async (
       // Check if this verifier already has a team
       const existingTeam = await VerificationTeam.findOne({
         userId: verifier._id,
-        department: deptValue
+        department: department
       });
 
       if (existingTeam) {
@@ -167,7 +160,7 @@ export const createVerificationCommittee = async (
         // Create new team
         const newTeam = new VerificationTeam({
           userId: verifier._id,
-          department: deptValue,
+          department: department,
           faculties: assignedFaculties.map(f => f._id)
         });
         await newTeam.save();
@@ -206,6 +199,75 @@ export const createVerificationCommittee = async (
     console.error('Error creating verification committee:', error);
     return res.status(500).json({
       error: 'Failed to create verification committee'
+    });
+  }
+};
+
+// Assign specific faculties to verification committee members
+export const assignFacultiesToCommittee = async (
+  req: Request<{}, {}, AssignFacultiesBody>,
+  res: Response
+) => {
+  try {
+    const { department, assignments } = req.body;
+
+    if (!department) {
+      return res.status(400).json({
+        error: 'Department is required'
+      });
+    }
+
+    if (!assignments || typeof assignments !== 'object') {
+      return res.status(400).json({
+        error: 'Assignments object is required'
+      });
+    }
+
+    // Process each assignment
+    for (const [verifierId, facultyIds] of Object.entries(assignments)) {
+      // Extract just the ID from format "userId (name)"
+      const cleanVerifierId = verifierId.split(' ')[0];
+      
+      // Find verifier
+      const verifier = await User.findOne({ userId: cleanVerifierId });
+      if (!verifier) continue;
+
+      // Clean faculty IDs and find faculty members
+      const cleanFacultyIds = facultyIds.map(id => id.split(' ')[0]);
+      const faculties = await User.find({ 
+        userId: { $in: cleanFacultyIds }
+      });
+
+      // Find or create verification team
+      let team = await VerificationTeam.findOne({
+        userId: verifier._id,
+        department: department
+      });
+
+      if (team) {
+        // Update existing team
+        team.faculties = faculties.map(f => f._id);
+        await team.save();
+      } else {
+        // Create new team
+        team = new VerificationTeam({
+          userId: verifier._id,
+          department: department,
+          faculties: faculties.map(f => f._id)
+        });
+        await team.save();
+      }
+    }
+
+    return res.status(200).json({
+      message: 'Faculty allocation updated successfully',
+      department: department
+    });
+
+  } catch (error) {
+    console.error('Error assigning faculties:', error);
+    return res.status(500).json({
+      error: 'Failed to assign faculties'
     });
   }
 };

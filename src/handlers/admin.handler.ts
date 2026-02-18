@@ -113,8 +113,8 @@ export const AddUser = async (
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const users = await User.find()
-      .select('userId name email department mobile designation status role createdAt')
+    const users = await User.find({ status: "active" })
+      .select('userId name email department mobile designation role createdAt')
       .sort({ createdAt: -1 });
 
     return res.status(200).json(users);
