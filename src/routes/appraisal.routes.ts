@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
   getAppraisalByUserId,
-  getAllAppraisals,
   getAppraisalsByDepartment,
   updatePartA,
   updatePartB,
@@ -19,12 +18,6 @@ const router = Router();
 // Every route in this file requires a valid JWT.
 router.use(authMiddleware());
 
-// List all appraisals — restricted to elevated roles.
-router.get(
-  '/',
-  authMiddleware('admin', 'director', 'dean', 'associate_dean', 'hod'),
-  getAllAppraisals
-);
 
 // Must be declared BEFORE /:userId to avoid Express matching "department" as a userId.
 router.get(

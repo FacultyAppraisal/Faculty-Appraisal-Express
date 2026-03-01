@@ -3,6 +3,7 @@ import { DepartmentValue, StakeholderStatus, UserDesignation, UserRole } from '.
 import { User } from '../models/user';
 import { hashPassword } from '../utils/password';
 import mongoose from 'mongoose';
+import InteractionDean from '../models/interactionDean';
 
 interface CreateUserRequest {
     userId: string;
@@ -174,6 +175,122 @@ export const deleteUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error deleting user:", error);
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error"
+    });
+  }
+};
+
+// Handler to assign interaction deans to a department
+export const assignInteractionDeans = async (req: Request, res: Response) => {
+  try {
+    const { department } = req.params;
+    const { dean_ids } = req.body;
+
+    if (!department) {
+      return res.status(400).json({
+        message: "Department is required"
+      });
+    }
+
+    if (!dean_ids || !Array.isArray(dean_ids) || dean_ids.length === 0) {
+      return res.status(400).json({
+        message: "Dean IDs array is required and cannot be empty"
+      });
+    }
+
+    // Validate that all dean_ids are non-empty strings
+    const validDeanIds = dean_ids.filter((id) => typeof id === 'string' && id.trim().length > 0);
+    
+    if (validDeanIds.length !== dean_ids.length) {
+      return res.status(400).json({
+        message: "Invalid dean ID(s) provided"
+      });
+    }
+
+    // Verify that all provided IDs are actually deans
+    const deans = await User.find({
+      userId: { $in: validDeanIds },
+      role: "dean"
+    });
+
+    if (deans.length !== validDeanIds.length) {
+      const foundUserIds = deans.map(d => d.userId);
+      const invalidUserIds = validDeanIds.filter(id => !foundUserIds.includes(id));
+      return res.status(400).json({
+        message: `One or more provided IDs do not belong to users with Dean designation: ${invalidUserIds.join(', ')}`
+      });
+    }
+
+    // Update or create the interaction dean document
+    const interactionDean = await InteractionDean.findOneAndUpdate(
+      { department },
+      { department, deanIds: validDeanIds },
+      { upsert: true, new: true }
+    );
+
+    // Fetch dean details separately
+    const deanDetails = await User.find(
+      { userId: { $in: validDeanIds } },
+      'userId name email department designation'
+    );
+
+    return res.status(200).json({
+      message: "Interaction deans assigned successfully",
+      data: {
+        ...interactionDean.toObject(),
+        deans: deanDetails
+      }
+    });
+  } catch (error) {
+    console.error("Error assigning interaction deans:", error);
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : "Internal server error"
+    });
+  }
+};
+
+// Handler to get all interaction deans for all departments
+export const getAllInteractionDeans = async (req: Request, res: Response) => {
+  try {
+    // Fetch all interaction deans
+    const allInteractionDeans = await InteractionDean.find();
+
+    // Create a map to store department-wise deans
+    const departmentDeansMap: { [key: string]: any[] } = {};
+
+    // Collect all unique userIds
+    const allUserIds = new Set<string>();
+    allInteractionDeans.forEach(interactionDean => {
+      interactionDean.deanIds.forEach(userId => allUserIds.add(userId));
+    });
+
+    // Fetch all dean details at once
+    const allDeanDetails = await User.find(
+      { userId: { $in: Array.from(allUserIds) } },
+      'userId name email department designation'
+    );
+
+    // Create a map for quick lookup
+    const deanDetailsMap = new Map();
+    allDeanDetails.forEach(dean => {
+      deanDetailsMap.set(dean.userId, dean);
+    });
+
+    // Build the response with dean details
+    allInteractionDeans.forEach(interactionDean => {
+      const deansForDepartment = interactionDean.deanIds
+        .map(userId => deanDetailsMap.get(userId))
+        .filter(dean => dean !== undefined);
+      
+      departmentDeansMap[interactionDean.department] = deansForDepartment;
+    });
+
+    return res.status(200).json({
+      data: departmentDeansMap
+    });
+  } catch (error) {
+    console.error("Error fetching all interaction deans:", error);
     return res.status(500).json({
       message: error instanceof Error ? error.message : "Internal server error"
     });

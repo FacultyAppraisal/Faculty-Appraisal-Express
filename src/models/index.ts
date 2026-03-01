@@ -1,2 +1,3 @@
 export { User } from './user';
 export { VerificationTeam } from './verificationTeam';
+export { InteractionDean } from './interactionDean';

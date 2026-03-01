@@ -41,7 +41,7 @@ export const sendMail = async (options: EmailOptions): Promise<boolean> => {
       });
 
     const result = await request;
-    console.log('Email sent successfully:', result.body);
+    // console.log('Email sent successfully:', result.body);
     return true;
   } catch (error: any) {
     console.error('Email sending failed:', error.statusCode || error.message);
