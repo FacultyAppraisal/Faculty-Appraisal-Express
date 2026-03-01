@@ -36,7 +36,6 @@ router.get(
 
 
 // GET /appraisal/:userId/pdf
-// Generate and download a PDF version of the appraisal.
 router.get('/:userId/pdf', downloadAppraisalPDF);
 
 // GET /appraisal/:userId
