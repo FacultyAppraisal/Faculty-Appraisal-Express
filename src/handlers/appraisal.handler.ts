@@ -14,7 +14,7 @@ declare global {
 }
 
 /** Roles that can view/act on any faculty's appraisal. */
-const EVALUATOR_ROLES: UserRole[] = ['admin', 'director', 'dean', 'associate_dean', 'hod'];
+const EVALUATOR_ROLES: UserRole[] = ['director', 'dean', 'associate_dean', 'hod'];
 
 /**
  * Find an appraisal by userId and return 404 if missing.
@@ -95,10 +95,6 @@ function assertDraft(res: Response, appraisal: IFacultyAppraisal): boolean {
 // GET /appraisal/:userId
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Returns the full appraisal document.
- * Faculty can only fetch their own; evaluator roles can fetch any.
- */
 export const getAppraisalByUserId = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
@@ -122,41 +118,6 @@ export const getAppraisalByUserId = async (req: Request, res: Response): Promise
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// READ — list
-// GET /appraisal  (admin / director / dean / hod)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns a summary list of all appraisals.
- * Supports optional ?status and ?department query filters.
- * Department filtering requires a join to the User collection.
- */
-export const getAllAppraisals = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { status, department } = req.query as Record<string, string | undefined>;
-
-    // Build the appraisal-level filter
-    const appraisalFilter: Record<string, unknown> = {};
-    if (status) appraisalFilter.status = status;
-
-    // If department filter is requested, resolve the matching userIds first
-    if (department) {
-      const usersInDept = await User.find({ department }, { userId: 1, _id: 0 }).lean();
-      const userIds = usersInDept.map((u) => u.userId);
-      appraisalFilter.userId = { $in: userIds };
-    }
-
-    const appraisals = await FacultyAppraisal.find(appraisalFilter)
-      .select('userId role designation appraisalYear status summary createdAt updatedAt')
-      .sort({ updatedAt: -1 });
-
-    sendSuccess(res, appraisals, 'Appraisals retrieved successfully');
-  } catch (error) {
-    console.error('getAllAppraisals error:', error);
-    sendError(res, 'Failed to retrieve appraisals', HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // READ — by department
