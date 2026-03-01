@@ -13,6 +13,7 @@ import {
   updateDeclaration,
   submitAppraisal,
 } from '../handlers/appraisal.handler';
+import { downloadAppraisalPDF } from '../handlers/pdf.handler';
 
 const router = Router();
 
@@ -33,6 +34,9 @@ router.get(
   getAppraisalsByDepartment
 );
 
+
+// GET /appraisal/:userId/pdf
+router.get('/:userId/pdf', downloadAppraisalPDF);
 
 // GET /appraisal/:userId
 // Fetch the full appraisal document — owner or evaluator roles.
