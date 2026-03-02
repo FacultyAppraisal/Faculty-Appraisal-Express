@@ -11,7 +11,7 @@ const setCookies = (
   res: Response,
   accessToken: string,
   role: string,
-  user: { id: string; email: string; name: string; role: string; isInVerificationPanel?: boolean },
+  user: { id: string; email: string; name: string; role: string; department: string; designation?: string; isInVerificationPanel?: boolean },
 ): void => {
   const isProd = process.env.NODE_ENV === "production";
 
@@ -20,6 +20,8 @@ const setCookies = (
     email: user.email,
     name: user.name,
     role: user.role,
+    department: user.department,
+    designation: user.designation,
     isInVerificationPanel: user.isInVerificationPanel || false,
   };
 
@@ -74,6 +76,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       email: user.email,
       name: user.name,
       role: user.role,
+      department: user.department,
+      designation: user.designation,
       isInVerificationPanel: !!isVerifier,
     };
 
@@ -101,7 +105,7 @@ export const validateUser = async (
 
     const user = await User.findOne(
       { userId: req.user.userId, status: 'active' },
-      { userId: 1, email: 1, name: 1, role: 1 }
+      { userId: 1, email: 1, name: 1, role: 1, department: 1, designation: 1 }
     );
 
     if (!user) {
@@ -124,6 +128,8 @@ export const validateUser = async (
         email: user.email,
         name: user.name,
         role: user.role,
+        department: user.department,
+        designation: user.designation,
         isInVerificationPanel: !!isVerifier,
       },
       token,

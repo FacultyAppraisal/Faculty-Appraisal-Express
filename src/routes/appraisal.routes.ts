@@ -18,14 +18,12 @@ const router = Router();
 // Every route in this file requires a valid JWT.
 router.use(authMiddleware());
 
-
 // Must be declared BEFORE /:userId to avoid Express matching "department" as a userId.
 router.get(
   '/department/:department',
-  authMiddleware('admin', 'director', 'dean', 'associate_dean', 'hod'),
+  authMiddleware('hod'),
   getAppraisalsByDepartment
 );
-
 
 // GET /appraisal/:userId
 // Fetch the full appraisal document — owner or evaluator roles.
@@ -47,7 +45,8 @@ router.patch('/:userId/submit', submitAppraisal);
 // Dean / HOD / Director enters their evaluation marks after faculty submission.
 router.put(
   '/:userId/part-d/evaluator',
-  authMiddleware('director', 'dean', 'associate_dean', 'hod'),
+  authMiddleware('dean', 'hod'),
   portfolioMarksEvaluator
 );
+
 export default router;

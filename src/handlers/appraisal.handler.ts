@@ -131,14 +131,12 @@ export const getAppraisalByUserId = async (req: Request, res: Response): Promise
 export const getAppraisalsByDepartment = async (req: Request, res: Response): Promise<void> => {
   try {
     const { department } = req.params;
-    const { status } = req.query as Record<string, string | undefined>;
 
     // Resolve userIds that belong to this department
     const usersInDept = await User.find({ department }, { userId: 1, _id: 0 }).lean();
     const userIds = usersInDept.map((u) => u.userId);
 
     const filter: Record<string, unknown> = { userId: { $in: userIds } };
-    if (status) filter.status = status;
 
     const appraisals = await FacultyAppraisal.find(filter)
       .select('userId role designation appraisalYear status summary createdAt updatedAt')
