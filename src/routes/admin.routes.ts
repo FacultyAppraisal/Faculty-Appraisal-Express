@@ -17,4 +17,8 @@ router.get('/verification-team/:department', getVerificationCommitteeByDept);
 router.get('/interaction-deans', getAllInteractionDeans);
 router.post('/interaction-deans/:department', assignInteractionDeans);
 
+// Interaction deans routes
+router.get('/interaction-deans', getAllInteractionDeans);
+router.post('/interaction-deans/:department', assignInteractionDeans);
+
 export default router;
