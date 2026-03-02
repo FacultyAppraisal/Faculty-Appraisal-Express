@@ -69,7 +69,8 @@ export interface IFacultyAppraisal extends Document {
       studentFeedback: number;
       ptgMeetings: number;
     };
-    totalMarks: number;
+    totalClaimed: number;
+    totalVerified: number;
   };
 
   partB: {
@@ -168,8 +169,8 @@ export interface IFacultyAppraisal extends Document {
       submitted: number;
       ongoing: number;
     };
-    totalMarks: number;
-    verifiedMarks: number;
+    totalClaimed: number;
+    totalVerified: number;
   };
 
   partD: {
@@ -194,13 +195,14 @@ export interface IFacultyAppraisal extends Document {
     adminSelfAwardedMarks: number;
     directorMarks: number;
     adminDeanMarks: number;
-    totalMarks: number;
+    totalClaimed: number;
+    totalVerified: number;
   };
 
   partE: {
     bulletPoints: string;
-    selfAwardedMarks: number;
-    evaluatorMarks: number;
+    totalClaimed: number;
+    totalVerified: number;
   };
 
   summary: {
@@ -287,7 +289,8 @@ const facultyAppraisalSchema = new Schema<IFacultyAppraisal>(
         studentFeedback: { type: Number, default: 0 },
         ptgMeetings: { type: Number, default: 0 },
       },
-      totalMarks: { type: Number, default: 0 },
+      totalClaimed: { type: Number, default: 0 },
+      totalVerified: { type: Number, default: 0 },
     },
 
     // ── PART B ──────────────────────────────────────────────────────────────
@@ -376,8 +379,8 @@ const facultyAppraisalSchema = new Schema<IFacultyAppraisal>(
         submitted: { type: Number, default: 0 },
         ongoing: { type: Number, default: 0 },
       },
-      totalMarks: { type: Number, default: 0 },
-      verifiedMarks: { type: Number, default: 0 },
+      totalClaimed: { type: Number, default: 0 },
+      totalVerified: { type: Number, default: 0 },
     },
 
     // ── PART D ──────────────────────────────────────────────────────────────
@@ -407,14 +410,15 @@ const facultyAppraisalSchema = new Schema<IFacultyAppraisal>(
       adminSelfAwardedMarks: { type: Number, default: 0 },
       directorMarks: { type: Number, default: 0 },
       adminDeanMarks: { type: Number, default: 0 },
-      totalMarks: { type: Number, default: 0 },
+      totalClaimed: { type: Number, default: 0 },
+      totalVerified: { type: Number, default: 0 },
     },
 
     // ── PART E ──────────────────────────────────────────────────────────────
     partE: {
       bulletPoints: { type: String, default: "", },
-      selfAwardedMarks: { type: Number, default: 0, max: 50 },
-      evaluatorMarks: { type: Number, default: 0 },
+      totalClaimed: { type: Number, default: 0, max: 50 },
+      totalVerified: { type: Number, default: 0 },
     },
 
     // ── SUMMARY ─────────────────────────────────────────────────────────────

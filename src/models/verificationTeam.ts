@@ -1,10 +1,10 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 import { DepartmentValue, DEPARTMENT } from '../constant';
 
 export interface VerificationTeam extends Document {
-  userId: Types.ObjectId;
+  userId: string;
   department: DepartmentValue;
-  faculties: Types.ObjectId[];
+  faculties: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -12,8 +12,7 @@ export interface VerificationTeam extends Document {
 const verificationTeamSchema = new Schema<VerificationTeam>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: true,
     },
 
@@ -25,8 +24,8 @@ const verificationTeamSchema = new Schema<VerificationTeam>(
 
     faculties: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,
+        required: true,
       },
     ],
   },

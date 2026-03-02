@@ -4,13 +4,14 @@ import { generateToken } from "../utils/jwt";
 import { comparePassword } from "../utils/password";
 import { sendSuccess, sendError, HttpStatus } from "../utils/response";
 import { User } from "../models/user";
+import { VerificationTeam } from "../models/verificationTeam";
 import { hashPassword } from "../utils/password";
 import { sendPasswordResetEmail } from "../utils/mail";
 const setCookies = (
   res: Response,
   accessToken: string,
   role: string,
-  user: { id: string; email: string; name: string; role: string },
+  user: { id: string; email: string; name: string; role: string; isInVerificationPanel?: boolean },
 ): void => {
   const isProd = process.env.NODE_ENV === "production";
 
@@ -19,6 +20,7 @@ const setCookies = (
     email: user.email,
     name: user.name,
     role: user.role,
+    isInVerificationPanel: user.isInVerificationPanel || false,
   };
 
   const encodedUser = encodeURIComponent(JSON.stringify(userPayload));
@@ -59,6 +61,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Check if user is a verifier in any verification team
+    const isVerifier = await VerificationTeam.exists({ userId: user.userId });
+
     const token = generateToken(user.userId, user.email, user.role);
 
     user.lastLogin = new Date();
@@ -69,6 +74,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       email: user.email,
       name: user.name,
       role: user.role,
+      isInVerificationPanel: !!isVerifier,
     };
 
     setCookies(res, token, user.role, userInfo);
@@ -103,6 +109,9 @@ export const validateUser = async (
       return;
     }
 
+    // Check if user is a verifier in any verification team
+    const isVerifier = await VerificationTeam.exists({ userId: user.userId });
+
     // Get the token from header
     const authHeader = req.headers.authorization;
     const token = authHeader?.startsWith("Bearer ")
@@ -110,7 +119,13 @@ export const validateUser = async (
       : authHeader;
 
     sendSuccess(res, {
-      user,
+      user: {
+        userId: user.userId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isInVerificationPanel: !!isVerifier,
+      },
       token,
     });
   } catch (error) {

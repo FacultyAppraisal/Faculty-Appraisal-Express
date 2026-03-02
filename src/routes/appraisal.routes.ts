@@ -7,7 +7,7 @@ import {
   updatePartB,
   updatePartC,
   updatePartD,
-  updatePartDEvaluator,
+  portfolioMarksEvaluator,
   updatePartE,
   updateDeclaration,
   submitAppraisal,
@@ -43,13 +43,6 @@ router.put('/:userId/part-c', updatePartC);
 // PUT /appraisal/:userId/part-d  — Portfolio (faculty self-assessment fields only)
 router.put('/:userId/part-d', updatePartD);
 
-// PUT /appraisal/:userId/part-d/evaluator
-// Dean / HOD / Director enters their evaluation marks after faculty submission.
-router.put(
-  '/:userId/part-d/evaluator',
-  authMiddleware('director', 'dean', 'associate_dean', 'hod'),
-  updatePartDEvaluator
-);
 
 // PUT /appraisal/:userId/part-e  — Extraordinary Contributions
 router.put('/:userId/part-e', updatePartE);
@@ -63,4 +56,11 @@ router.patch('/:userId/declaration', updateDeclaration);
 // Faculty freezes and submits their appraisal (DRAFT → SUBMITTED).
 router.patch('/:userId/submit', submitAppraisal);
 
+// PUT /appraisal/:userId/part-d/evaluator
+// Dean / HOD / Director enters their evaluation marks after faculty submission.
+router.put(
+  '/:userId/part-d/evaluator',
+  authMiddleware('director', 'dean', 'associate_dean', 'hod'),
+  portfolioMarksEvaluator
+);
 export default router;

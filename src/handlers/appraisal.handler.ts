@@ -285,7 +285,7 @@ export const updatePartD = async (req: Request, res: Response): Promise<void> =>
  * The appraisal must be in SUBMITTED status (faculty has frozen their form).
  * The evaluator's role determines which mark field is written.
  */
-export const updatePartDEvaluator = async (req: Request, res: Response): Promise<void> => {
+export const portfolioMarksEvaluator = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
     const requestingUser = req.user!;
@@ -340,7 +340,7 @@ export const updatePartDEvaluator = async (req: Request, res: Response): Promise
 
     sendSuccess(res, updated, 'Evaluator marks saved successfully');
   } catch (error) {
-    console.error('updatePartDEvaluator error:', error);
+    console.error('portfolioMarksEvaluator error:', error);
     sendError(res, 'Failed to save evaluator marks', HttpStatus.INTERNAL_SERVER_ERROR);
   }
 };
@@ -360,8 +360,8 @@ export const updatePartE = async (req: Request, res: Response): Promise<void> =>
     if (!appraisal) return;
     if (!assertDraft(res, appraisal)) return;
 
-    // Strip the evaluator-only field — faculty cannot award themselves evaluatorMarks
-    const { evaluatorMarks, ...facultyFields } = req.body;
+    // Strip the evaluator-only field — faculty cannot award themselves totalVerified marks
+    const { totalVerified, ...facultyFields } = req.body;
 
     const updated = await FacultyAppraisal.findOneAndUpdate(
       { userId },
@@ -445,6 +445,7 @@ export const submitAppraisal = async (req: Request, res: Response): Promise<void
       return;
     }
 
+    
     if (!appraisal.declaration.isAgreed) {
       sendError(
         res,
@@ -453,6 +454,8 @@ export const submitAppraisal = async (req: Request, res: Response): Promise<void
       );
       return;
     }
+    
+    appraisal.summary.grandTotalClaimed = (appraisal.partA.totalClaimed + appraisal.partB.totalClaimed + appraisal.partC.totalClaimed + appraisal.partD.totalClaimed + appraisal.partE.totalClaimed) > 1000 ? 1000 : (appraisal.partA.totalClaimed + appraisal.partB.totalClaimed + appraisal.partC.totalClaimed + appraisal.partD.totalClaimed + appraisal.partE.totalClaimed);
 
     appraisal.status = APPRAISAL_STATUS.VERIFICATION_PENDING;
     appraisal.declaration.signatureDate = new Date();

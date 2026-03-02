@@ -91,31 +91,51 @@ export const createVerificationCommittee = async (
         });
       }
 
-      // Create verification team
+      // Create verification team - store string userId values
       const newTeam = new VerificationTeam({
-        userId: verifier._id,
+        userId: verifier.userId,
         department,
-        faculties: faculties.map(f => f._id)
+        faculties: faculties.map(f => f.userId)
       });
 
       await newTeam.save();
       createdTeams.push(newTeam);
     }
 
-    // Populate for response
-    const populatedTeams = await VerificationTeam.find({ department })
-      .populate('userId', 'name email department')
-      .populate('faculties', 'name email department');
+    // Fetch created teams and manually populate user data
+    const savedTeams = await VerificationTeam.find({ department });
+    
+    // Get all unique userIds to fetch users
+    const allUserIds = savedTeams.flatMap(team => [team.userId, ...team.faculties]);
+    const users = await User.find({ userId: { $in: allUserIds } });
+    const userMap = new Map(users.map(u => [u.userId, u]));
 
     return res.status(201).json({
       success: true,
       message: 'Verification committee created successfully',
       data: {
         department,
-        verificationTeam: populatedTeams.map(team => ({
-          verifier: team.userId,
-          assignedFaculties: team.faculties
-        }))
+        verificationTeam: savedTeams.map(team => {
+          const verifier = userMap.get(team.userId);
+          const assignedFaculties = team.faculties
+            .map(fId => userMap.get(fId))
+            .filter((f): f is NonNullable<typeof f> => f !== undefined && f !== null);
+          
+          return {
+            verifier: verifier ? {
+              userId: verifier.userId,
+              name: verifier.name,
+              email: verifier.email,
+              department: verifier.department
+            } : null,
+            assignedFaculties: assignedFaculties.map(f => ({
+              userId: f.userId,
+              name: f.name,
+              email: f.email,
+              department: f.department
+            }))
+          };
+        })
       }
     });
 
@@ -145,9 +165,7 @@ export const getVerificationCommitteeByDept = async (
     }
 
     // Find all verification teams for this department
-    const verificationTeams = await VerificationTeam.find({ department })
-      .populate('userId', 'userId name email department designation')
-      .populate('faculties', 'userId name email department designation');
+    const verificationTeams = await VerificationTeam.find({ department });
 
     if (!verificationTeams || verificationTeams.length === 0) {
       return res.status(200).json({
@@ -160,19 +178,26 @@ export const getVerificationCommitteeByDept = async (
       });
     }
 
+    // Get all unique userIds to fetch users
+    const allUserIds = verificationTeams.flatMap(team => [team.userId, ...team.faculties]);
+    const users = await User.find({ userId: { $in: allUserIds } });
+    const userMap = new Map(users.map(u => [u.userId, u]));
+
     // Build response
     const verificationTeam = verificationTeams.map(team => {
-      const verifier = team.userId as any;
-      const faculties = team.faculties as any[];
+      const verifier = userMap.get(team.userId);
+      const assignedFaculties = team.faculties
+        .map(fId => userMap.get(fId))
+        .filter((f): f is NonNullable<typeof f> => f !== undefined && f !== null);
       
       return {
-        verifier: {
+        verifier: verifier ? {
           userId: verifier.userId,
           name: verifier.name,
           email: verifier.email,
           department: verifier.department
-        },
-        assignedFaculties: faculties.map(faculty => ({
+        } : null,
+        assignedFaculties: assignedFaculties.map(faculty => ({
           userId: faculty.userId,
           name: faculty.name,
           email: faculty.email,
